@@ -1,0 +1,5 @@
+cmake_minimum_required( VERSION 2.4.6 )
+PROJECT( ObjectCategory_proj )
+FIND_PACKAGE( OpenCV REQUIRED )
+ADD_EXECUTABLE( ObjectCategory main.cpp ObjectCategory.cpp)
+TARGET_LINK_LIBRARIES( ObjectCategory ${OpenCV_LIBS} )
