@@ -1,5 +1,9 @@
 #include <iostream>
 #include "ObjectCategory.h"
+
+#include <boost/filesystem.hpp>
+using namespace boost::filesystem;
+
 using namespace std;
 
 int main(int argc, char *argv[])
@@ -19,21 +23,21 @@ int main(int argc, char *argv[])
 
 		string defaultPath = "../resource/test/"+testFilePath;
 		cout<<"using file: "<<defaultPath<<endl;
-		FILE *pFile = fopen(defaultPath.c_str(), "r");
-		if (pFile == NULL)
+		path filePath(defaultPath);
+		if (!exists(filePath))
 		{
 			cout<<defaultPath<<" not found, using: "<<testFilePath<<endl;
-			pFile = fopen(testFilePath.c_str(), "r");
-			if (pFile == NULL)
+			path absPath(testFilePath);
+			if (!exists(absPath))
 			{
 				cout<<testFilePath<<" not found, failed to test this image."
 					<<endl;
 			} else {
-				fclose(pFile);
+
 				objCat.test(testFilePath);
 			}
 		} else {
-			fclose(pFile);
+
 			objCat.test(defaultPath);
 		}
 		
