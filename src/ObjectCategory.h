@@ -3,6 +3,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/ml/ml.hpp>
 
 class ObjCat{
 public:
@@ -17,7 +18,9 @@ private:
 	bool debugging;
 	cv::Mat mVocabulary;
 	cv::Mat mLabels;
-
+	int mK;//k-means' parameter
+	cv::CvSVMParams mSVMParams;//SVM's parameters
+	
 	std::vector<cv::Mat> readImage();
 	
 	std::vector< std::vector< cv::KeyPoint > >

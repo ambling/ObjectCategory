@@ -10,6 +10,10 @@ using namespace cv;
 ObjCat::ObjCat()
 {
 	debugging = true;
+	mK = 150;
+	mSVMParams.svm_type = CvSVM::C_SVC;
+	mSVMParams.kernel_type = CvSVM::LINEAR;
+	mSVMParams.term_crit = cvTermCriteria(CV_TERMCRIT_EPS, 100, 1e-6);
 }
 
 ObjCat::~ObjCat()
@@ -38,56 +42,14 @@ void ObjCat::train()
 		}
 	}
 
-	//train the vocabulary
+	//cluster the vocabulary
 	cluster(descriptors);
 	
 	if (debugging)
 	{
-		int cols = mLabels.cols, rows = mLabels.rows;
-		for(int i = 0; i < rows; i++)
-		{
-			const int* Mi = mLabels.ptr<int>(i);
-			for(int j = 0; j < cols; j++)
-				cout<<Mi[j]<<endl;
-		}
 	}
 
-	//show the label distributation for each image
-	int start = 0;
-	for (int i = 0; i < images.size(); ++i)
-	{
-		int l0 = 0, l1= 0, l2 = 0, l3 = 0, l4 = 0;
-		for (int j = 0; j < descriptors[i].rows; ++j)
-		{
-			switch (mLabels.at<int>(0, start+j))
-			{
-			case 0:
-				l0 ++;
-				break;
-			case 1:
-				l1 ++;
-				break;
-			case 2:
-				l2 ++;
-				break;
-			case 3:
-				l3 ++;
-				break;
-			case 4:
-				l4 ++;
-				break;
-			default:
-				cout<<"error label: "<<start+j<<endl;
-				break;
-			}
-		}
-		start += descriptors[i].rows;
-		
-		cout<<"image "<<i<<": "
-			<<l0<<", "<<l1<<", "<<l2
-			<<", "<<l3<<", "<<l4
-			<<endl;
-	}
+	//train the classifier
 }
 
 void ObjCat::test(string imgName)
@@ -125,9 +87,11 @@ void ObjCat::cluster(const vector<Mat> descriptors)
 
 	Mat labels;//output labels
 	Mat centers;//output centers
-	TermCriteria criteria(TermCriteria::COUNT + TermCriteria::EPS,
-						  1000, 1e-7);//compute criteria to stop
-	int K = 5;// K clusters
+	// TermCriteria criteria(TermCriteria::COUNT + TermCriteria::EPS,
+	// 					  1000, 1e-7);//compute criteria to stop
+	TermCriteria criteria(TermCriteria::EPS,
+						  100000, 1e-7);//compute criteria to stop
+	int K = mK;// K clusters
 	int attempts = 15;//try attempts times to choose the best
 	kmeans(mergedDescriptors, K, labels, criteria, attempts,
 		   KMEANS_RANDOM_CENTERS, centers);
