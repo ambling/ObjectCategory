@@ -2,4 +2,6 @@
 *.tar.gz
 bin/CMakeFiles
 .emacs.desktop
-.DS_Store
+*.DS_Store
+doc/
+

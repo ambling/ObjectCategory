@@ -9,8 +9,8 @@ using namespace cv;
 
 ObjCat::ObjCat()
 {
-	debugging = true;
-	mK = 150;
+	debugging = false;
+	mK = 30;
 	mSVMParams.svm_type = CvSVM::C_SVC;
 	mSVMParams.kernel_type = CvSVM::LINEAR;
 	mSVMParams.term_crit = cvTermCriteria(CV_TERMCRIT_EPS, 100, 1e-6);
@@ -45,16 +45,93 @@ void ObjCat::train()
 	//cluster the vocabulary
 	cluster(descriptors);
 	
-	if (debugging)
-	{
-	}
-
 	//train the classifier
+	trainClassifier(images, descriptors);
 }
 
 void ObjCat::test(string imgName)
 {
+	Mat img = imread(imgName, CV_LOAD_IMAGE_COLOR);
+	vector<Mat> imgVec;
+	imgVec.push_back(img);
+	vector<vector<KeyPoint> > keyps = detect(imgVec);
+	vector<Mat> desps = compute(imgVec, keyps);
 
+	Mat imageVector = getImageVector(img, desps[0]);
+	float label = mSVM.predict(imageVector, false);
+	cout<<"predict result: "<<label<<endl;
+}
+
+/*
+ *use descriptor matcher to get image vector
+ */
+Mat ObjCat::getImageVector(const Mat &image,
+						   const Mat &descriptor){
+	int clusterCount = mVocabulary.rows;
+
+	FlannBasedMatcher matcher;
+	vector<DMatch> matches;
+	matcher.match( descriptor, mVocabulary, matches );
+
+	Mat imageVectorMat = Mat(1, clusterCount, CV_32FC1, Scalar::all(0.0));
+	float *imageVector = (float*)imageVectorMat.data;
+	for (int i = 0; i < matches.size(); ++i)
+	{
+		int queryIdx = matches[i].queryIdx;
+		int trainIdx = matches[i].trainIdx;
+
+		CV_Assert( queryIdx == i);
+
+		imageVector[trainIdx] = imageVector[trainIdx] + 1.f;
+	}
+	
+	//Normalize the vector
+	imageVectorMat /= descriptor.rows;
+	return imageVectorMat;
+}
+
+/*
+ * use image labels to train the SVM classifier
+ *
+ */
+void ObjCat::trainClassifier(const vector<Mat> &images,
+							 const vector<Mat> &descriptors)
+{
+	float *labels = new float[images.size()];
+	Mat imageVectors;
+	for (int i = 0; i < images.size(); ++i)
+	{
+		//10 images of each category and are sorted in order
+		labels[i] = 1.0* (i / 10);
+
+		Mat imageVector = getImageVector(images[i], descriptors[i]);
+		if (i == 0)
+		{
+			imageVectors = imageVector;
+		} else {
+			vconcat(imageVectors, imageVector, imageVectors);
+		}
+	}
+
+	Mat labelsMat = Mat(images.size(), 1, CV_32FC1, labels);
+
+	if (debugging)
+	{
+		cout<<labelsMat<<endl;
+
+		cout<<imageVectors<<endl;
+	}
+	
+	mSVM.train(imageVectors, labelsMat, Mat(), Mat(), mSVMParams);
+	delete labels;
+
+	cout<<"original labels: "<<labelsMat<<endl;
+	cout<<"test on training samples: ";
+	for (int i = 0; i < images.size(); ++i)
+	{
+		cout<<mSVM.predict(getImageVector(images[i], descriptors[i]))<<", ";
+	}
+	cout<<endl;
 }
 
 /*
@@ -62,7 +139,7 @@ void ObjCat::test(string imgName)
  * first merge discriptors to one Mat
  * then clustering the centers as vocabulary
  */
-void ObjCat::cluster(const vector<Mat> descriptors)
+void ObjCat::cluster(const vector<Mat> &descriptors)
 {
 	if (descriptors.empty())
 	{
@@ -95,8 +172,6 @@ void ObjCat::cluster(const vector<Mat> descriptors)
 	int attempts = 15;//try attempts times to choose the best
 	kmeans(mergedDescriptors, K, labels, criteria, attempts,
 		   KMEANS_RANDOM_CENTERS, centers);
-
-	mLabels = labels;
 	mVocabulary = centers;
 }
 
@@ -160,7 +235,7 @@ vector<Mat> ObjCat::readImage()
 							  CV_LOAD_IMAGE_COLOR);
 			if (debugging)
 			{
-				imshow("training image", img);
+				// imshow("training image", img);
 			}
 			images.push_back(img);
 			

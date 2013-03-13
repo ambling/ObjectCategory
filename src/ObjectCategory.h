@@ -16,10 +16,13 @@ public:
 
 private:
 	bool debugging;
+
+	cv::SVM mSVM;//the svm trainer and predictor
+	
 	cv::Mat mVocabulary;
-	cv::Mat mLabels;
+
 	int mK;//k-means' parameter
-	cv::CvSVMParams mSVMParams;//SVM's parameters
+	cv::SVMParams mSVMParams;//SVM's parameters
 	
 	std::vector<cv::Mat> readImage();
 	
@@ -30,5 +33,10 @@ private:
 		compute(const std::vector<cv::Mat> &images,
 				std::vector<std::vector<cv::KeyPoint> > &kps);
 
-	void cluster(const std::vector<cv::Mat>);
+	void cluster(const std::vector<cv::Mat> &);
+
+	void trainClassifier(const std::vector<cv::Mat> &images,
+						 const std::vector<cv::Mat> &descriptors);
+	cv::Mat getImageVector(const cv::Mat &image,
+						   const cv::Mat &descriptor);
 };
